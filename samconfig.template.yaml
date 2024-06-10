@@ -1,0 +1,16 @@
+version: 0.1
+
+default:
+  deploy:
+    parameters:
+      stack_name: serverless-fastapi
+      resolve_s3: true
+      s3_prefix: serverless-fastapi
+      region: us-east-1
+      capabilities: CAPABILITY_IAM
+      parameter_overrides: # ここを書く
+        - Stage= # API Gatewayのステージ名
+        - DomainName= # API Gatewayのドメイン名
+        - HostedZoneId= # Route53のホストゾーンID
+        - CertificateArn= # ACMの証明書ARN
+

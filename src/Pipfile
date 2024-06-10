@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[scripts]
+dev = "uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+test = "pytest ../tests/unit/test_handler.py -p no:warnings"
+
+[packages]
+requests = "*"
+fastapi = "*"
+uvicorn = "*"
+boto3 = "*"
+pytest = "*"
+mangum = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

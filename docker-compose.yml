@@ -1,0 +1,38 @@
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: ./docker/fastapi/Dockerfile
+    command: "pipenv run dev"
+    volumes:
+      - ./src:/app
+    ports:
+      - 8000:8000
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      TZ: "Asia/Tokyo"
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    build: ./docker/phpmyadmin
+    environment:
+      - PMA_HOST=${DB_HOST}
+      - PMA_USER=${DB_USER}
+      - PMA_PASSWORD=${DB_PASSWORD}
+    links:
+      - mysql
+    ports:
+      - "8080:80"
+    volumes:
+      - "/sessions"
+      - "./docker/phpmyadmin/conf.d:/usr/local/etc/php/conf.d"
+
+volumes:
+  db_data:

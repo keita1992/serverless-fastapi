@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  serverless-fastapi
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 1024
+
+Parameters:
+  Stage:
+    Type: String
+    Default: Prod
+    Description: The stage environment name.
+  DomainName:
+    Type: String
+    Description: The domain name of the API
+  HostedZoneId:
+    Type: String
+    Description: The hosted zone id of the domain name
+  CertificateArn:
+    Type: String
+    Description: The certificate arn of the domain name
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: serverless-fastapi
+      Handler: main.handler
+      Runtime: python3.9
+      Architectures:
+        - arm64
+      CodeUri: src/
+      MemorySize: 512
+
+  LambdaApiGatewayInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunction
+      Principal: apigateway.amazonaws.com
+  
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Auth:
+        ApiKeyRequired: false
+      StageName: !Ref Stage
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Ref CertificateArn
+        EndpointConfiguration: EDGE
+        Route53:
+          HostedZoneId: !Ref HostedZoneId
+      MethodSettings:
+        - LoggingLevel: ERROR
+          DataTraceEnabled: false
+          HttpMethod: '*'
+          ResourcePath: '/*'
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title:
+            Ref: AWS::StackName
+        paths:
+          /articles:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST # Lambda関数の呼び出しは常にPOSTに指定
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+              responses: {}
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  LambdaFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt LambdaFunction.Arn
+  LambdaFunctionIamRole:
+    Description: "Implicit IAM Role created for Lambda function"
+    Value: !GetAtt LambdaFunctionRole.Arn

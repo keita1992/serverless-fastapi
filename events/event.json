@@ -1,0 +1,8 @@
+{
+  "resource": "/",
+  "path": "/articles",
+  "httpMethod": "GET",
+  "requestContext": {
+    "Dummy": "Dummy"
+  }
+}
