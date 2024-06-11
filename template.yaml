@@ -23,6 +23,9 @@ Parameters:
   CertificateArn:
     Type: String
     Description: The certificate arn of the domain name
+  AllowedIp:
+    Type: String
+    Description: The allowed ip address
 
 Resources:
   LambdaFunction:
@@ -46,9 +49,27 @@ Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
+      StageName: !Ref Stage
       Auth:
         ApiKeyRequired: false
-      StageName: !Ref Stage
+        ResourcePolicy:
+          CustomStatements: 
+            - Effect: Allow
+              Principal: "*"
+              Action: 'execute-api:Invoke'
+              Resource: [execute-api:/*/*/*]
+              Condition:
+                IpAddress:
+                  aws:SourceIp:
+                    - !Ref AllowedIp
+            - Effect: Deny
+              Principal: "*"
+              Action: 'execute-api:Invoke'
+              Resource: [execute-api:/*/*/*]
+              Condition:
+                NotIpAddress:
+                  aws:SourceIp: 
+                    - !Ref AllowedIp
       Domain:
         DomainName: !Ref DomainName
         CertificateArn: !Ref CertificateArn
@@ -74,6 +95,19 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
               responses: {}
+          /docs:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST # Lambda関数の呼び出しは常にPOSTに指定
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+              responses: {}
+      GatewayResponses:
+        DEFAULT_4XX:
+          StatusCode: 403
+          ResponseTemplates:
+            application/json: "{\"message\": \"Forbidden\" }"
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
